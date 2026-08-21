@@ -340,7 +340,7 @@
                 const vent = parseInt(ventStr);
 
                 // Send patient position & required resources to the new optimization endpoint
-                const response = await fetch('http://127.0.0.1:8000/optimize', {
+                const response = await fetch('https://aegis-health-routing.onrender.com/optimize', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -411,7 +411,7 @@
                 map.fitBounds(routeLine.getBounds(), {padding: [50, 50]});
 
             } catch (error) {
-                alert("Failed to connect to backend API. Is Uvicorn running?");
+                alert("Failed to connect to backend API. Is your Render service running?");
             } finally {
                 if (btn) btn.disabled = false;
                 overlay.style.display = 'none'; 
@@ -426,7 +426,7 @@
             };
 
             try {
-                const response = await fetch('http://127.0.0.1:8000/route', {
+                const response = await fetch('https://aegis-health-routing.onrender.com/route', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)

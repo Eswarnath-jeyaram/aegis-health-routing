@@ -1,0 +1,240 @@
+[
+  {
+    "id": "H001",
+    "name": "Rajiv Gandhi Government General Hospital (Central)",
+    "lat": 13.0815,
+    "lon": 80.2765,
+    "capacity": {
+      "icu_beds": 12,
+      "general_beds": 50,
+      "ventilators": 8
+    },
+    "resources": [
+      "Trauma_Surgeon",
+      "MRI",
+      "Blood_Bank",
+      "Burn_Unit"
+    ]
+  },
+  {
+    "id": "H002",
+    "name": "Apollo Hospitals, Greams Road",
+    "lat": 13.0617,
+    "lon": 80.2522,
+    "capacity": {
+      "icu_beds": 4,
+      "general_beds": 20,
+      "ventilators": 2
+    },
+    "resources": [
+      "Trauma_Surgeon",
+      "MRI",
+      "Cath_Lab",
+      "Blood_Bank"
+    ]
+  },
+  {
+    "id": "H003",
+    "name": "MIOT International, Manapakkam",
+    "lat": 13.0135,
+    "lon": 80.1764,
+    "capacity": {
+      "icu_beds": 7,
+      "general_beds": 15,
+      "ventilators": 0
+    },
+    "resources": [
+      "Trauma_Surgeon",
+      "MRI",
+      "Blood_Bank"
+    ]
+  },
+  {
+    "id": "H004",
+    "name": "Sri Ramachandra Medical Centre, Porur",
+    "lat": 13.0371,
+    "lon": 80.1472,
+    "capacity": {
+      "icu_beds": 15,
+      "general_beds": 40,
+      "ventilators": 10
+    },
+    "resources": [
+      "Trauma_Surgeon",
+      "MRI",
+      "Blood_Bank",
+      "Cath_Lab"
+    ]
+  },
+  {
+    "id": "H005",
+    "name": "Kauvery Hospital, Alwarpet",
+    "lat": 13.0336,
+    "lon": 80.256,
+    "capacity": {
+      "icu_beds": 2,
+      "general_beds": 10,
+      "ventilators": 1
+    },
+    "resources": [
+      "MRI",
+      "Cath_Lab"
+    ]
+  },
+  {
+    "id": "H006",
+    "name": "SIMS Hospital, Vadapalani",
+    "lat": 13.0526,
+    "lon": 80.21,
+    "capacity": {
+      "icu_beds": 5,
+      "general_beds": 25,
+      "ventilators": 3
+    },
+    "resources": [
+      "Trauma_Surgeon",
+      "MRI",
+      "Burn_Unit"
+    ]
+  },
+  {
+    "id": "H007",
+    "name": "Fortis Malar Hospital, Adyar",
+    "lat": 13.0125,
+    "lon": 80.2575,
+    "capacity": {
+      "icu_beds": 1,
+      "general_beds": 18,
+      "ventilators": 0
+    },
+    "resources": [
+      "Trauma_Surgeon",
+      "Blood_Bank"
+    ]
+  },
+  {
+    "id": "H008",
+    "name": "Gleneagles Global Health City, Perumbakkam",
+    "lat": 12.9056,
+    "lon": 80.1983,
+    "capacity": {
+      "icu_beds": 7,
+      "general_beds": 30,
+      "ventilators": 5
+    },
+    "resources": [
+      "Trauma_Surgeon",
+      "MRI",
+      "Cath_Lab",
+      "Blood_Bank"
+    ]
+  },
+  {
+    "id": "H009",
+    "name": "Dr. Rela Institute & Medical Centre, Chromepet",
+    "lat": 12.961,
+    "lon": 80.1417,
+    "capacity": {
+      "icu_beds": 8,
+      "general_beds": 22,
+      "ventilators": 6
+    },
+    "resources": [
+      "Trauma_Surgeon",
+      "MRI",
+      "Blood_Bank"
+    ]
+  },
+  {
+    "id": "H010",
+    "name": "MGM Healthcare, Aminjikarai",
+    "lat": 13.0725,
+    "lon": 80.2223,
+    "capacity": {
+      "icu_beds": 6,
+      "general_beds": 14,
+      "ventilators": 4
+    },
+    "resources": [
+      "MRI",
+      "Cath_Lab",
+      "Blood_Bank"
+    ]
+  },
+  {
+    "id": "H011",
+    "name": "Government Stanley Medical College, Royapuram",
+    "lat": 13.1092,
+    "lon": 80.2831,
+    "capacity": {
+      "icu_beds": 3,
+      "general_beds": 45,
+      "ventilators": 1
+    },
+    "resources": [
+      "Trauma_Surgeon",
+      "Blood_Bank",
+      "Burn_Unit"
+    ]
+  },
+  {
+    "id": "H012",
+    "name": "Chettinad Health City, Kelambakkam",
+    "lat": 12.8123,
+    "lon": 80.2201,
+    "capacity": {
+      "icu_beds": 4,
+      "general_beds": 35,
+      "ventilators": 0
+    },
+    "resources": [
+      "MRI",
+      "Blood_Bank"
+    ]
+  },
+  {
+    "id": "H013",
+    "name": "Vijaya Hospital, Vadapalani",
+    "lat": 13.0487,
+    "lon": 80.2079,
+    "capacity": {
+      "icu_beds": 4,
+      "general_beds": 20,
+      "ventilators": 2
+    },
+    "resources": [
+      "Trauma_Surgeon",
+      "Blood_Bank"
+    ]
+  },
+  {
+    "id": "H014",
+    "name": "Billroth Hospitals, Shenoy Nagar",
+    "lat": 13.0782,
+    "lon": 80.2265,
+    "capacity": {
+      "icu_beds": 2,
+      "general_beds": 12,
+      "ventilators": 1
+    },
+    "resources": [
+      "MRI",
+      "Cath_Lab"
+    ]
+  },
+  {
+    "id": "H015",
+    "name": "Apollo Proton Cancer Centre, Taramani",
+    "lat": 12.9818,
+    "lon": 80.2458,
+    "capacity": {
+      "icu_beds": 3,
+      "general_beds": 15,
+      "ventilators": 1
+    },
+    "resources": [
+      "MRI",
+      "Blood_Bank"
+    ]
+  }
+]

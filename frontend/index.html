@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AegisLink - Health Referral Optimizer</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        #sidebar { width: 350px; background: #f8f9fa; padding: 20px; box-shadow: 2px 0 5px rgba(0,0,0,0.1); z-index: 1000; overflow-y: auto;}
+        
+        /* New Map Wrapper and Overlay Styles */
+        #map-wrapper { position: relative; flex-grow: 1; height: 100vh; }
+        #map { width: 100%; height: 100%; }
+        
+        #loader-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(2px);
+            z-index: 9999;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .spinner {
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #e74c3c;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+
+        .loader-text {
+            margin-top: 15px;
+            font-size: 20px;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+
+        h2 { color: #2c3e50; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input[type="number"], input[type="text"] { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #e74c3c; color: white; border: none; font-size: 16px; cursor: pointer; border-radius: 5px;}
+        button:hover { background: #c0392b; }
+        button:disabled { cursor: not-allowed; opacity: 0.7; }
+        #result { margin-top: 20px; padding: 15px; background: #d4edda; color: #155724; border-radius: 5px; display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h2>AegisLink Dispatch</h2>
+        
+        <div class="form-group">
+            <label>Patient Latitude (Chennai)</label>
+            <input type="number" id="lat" value="13.0000" step="0.0001">
+        </div>
+        <div class="form-group">
+            <label>Patient Longitude (Chennai)</label>
+            <input type="number" id="lon" value="80.2000" step="0.0001">
+        </div>
+        <div class="form-group">
+            <label>Required ICU Beds</label>
+            <input type="number" id="icu" value="1" min="0">
+        </div>
+        <div class="form-group">
+            <label>Required Ventilators</label>
+            <input type="number" id="vent" value="1" min="0">
+        </div>
+        <div class="form-group">
+            <label>Required Clinical Resources</label>
+            <div id="dynamic-resources">
+                <input type="text" class="resource-input" placeholder="e.g. Trauma Surgeon" oninput="addInputIfNeeded(this)">
+            </div>
+        </div>
+
+        <button id="dispatch-btn" onclick="findRoute()">Find Optimal Route</button>
+
+        <div id="result"></div>
+    </div>
+
+    <!-- Map and Central Loader Overlay -->
+    <div id="map-wrapper">
+        <div id="map"></div>
+        <div id="loader-overlay">
+            <div class="spinner"></div>
+            <div class="loader-text">Analyzing Live Inventory & Routing...</div>
+        </div>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map').setView([13.0000, 80.2000], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        var patientMarker;
+        var hospitalMarker;
+        var routeLine;
+
+        function addInputIfNeeded(currentElement) {
+            const container = document.getElementById('dynamic-resources');
+            const inputs = container.getElementsByClassName('resource-input');
+            
+            if (currentElement === inputs[inputs.length - 1] && currentElement.value.trim() !== '') {
+                const newInput = document.createElement('input');
+                newInput.type = 'text';
+                newInput.className = 'resource-input';
+                newInput.placeholder = 'Add another...';
+                newInput.style.marginTop = '5px';
+                newInput.oninput = function() { addInputIfNeeded(this) };
+                container.appendChild(newInput);
+            }
+        }
+
+        async function findRoute() {
+            const latStr = document.getElementById('lat').value;
+            const lonStr = document.getElementById('lon').value;
+            const icuStr = document.getElementById('icu').value;
+            const ventStr = document.getElementById('vent').value;
+
+            // Input Validation
+            if (latStr === '' || isNaN(latStr) || lonStr === '' || isNaN(lonStr)) {
+                alert("Please enter valid numeric coordinates for the patient.");
+                return;
+            }
+            if (icuStr === '' || isNaN(icuStr) || ventStr === '' || isNaN(ventStr)) {
+                alert("Please enter a valid number for ICU beds and Ventilators.");
+                return;
+            }
+
+            // --- TRIGGER MAP OVERLAY LOADER ---
+            const btn = document.getElementById('dispatch-btn');
+            const overlay = document.getElementById('loader-overlay');
+            const resultBox = document.getElementById('result');
+            
+            if (btn) btn.disabled = true;
+            resultBox.style.display = 'none'; // Hide old results
+            overlay.style.display = 'flex';   // Show the central spinner
+
+            try {
+                const lat = parseFloat(latStr);
+                const lon = parseFloat(lonStr);
+                const icu = parseInt(icuStr);
+                const vent = parseInt(ventStr);
+
+                // Fetch live hospital data from MongoDB Backend
+                const response = await fetch('http://127.0.0.1:8000/hospitals');
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    alert("Error: " + (err.detail || "Not Found"));
+                    return;
+                }
+
+                const data = await response.json();
+                
+                // For this UI flow, we select the first available hospital from the cloud data
+                // (In a full engine, you would sort this array by distance first)
+                const hospital = data.hospitals[0]; 
+
+                // Resolve capacity variables based on MongoDB schema
+                const availableIcu = hospital.available_icu || hospital.capacity?.icu_beds || 'N/A';
+
+                // Show Success Results
+                resultBox.style.display = 'block';
+                resultBox.innerHTML = `
+                    <strong>Match Found!</strong><br>
+                    Hospital: ${hospital.name}<br>
+                    Available ICU Beds: ${availableIcu}<br>
+                    <button onclick="dispatchAmbulance('${hospital.id}', ${icu}, ${vent})" style="margin-top: 10px; background: #28a745;">Confirm & Dispatch</button>
+                `;
+
+                if (patientMarker) map.removeLayer(patientMarker);
+                if (hospitalMarker) map.removeLayer(hospitalMarker);
+                if (routeLine) map.removeLayer(routeLine);
+
+                patientMarker = L.marker([lat, lon]).addTo(map).bindPopup("Ambulance Location").openPopup();
+                
+                // Fallback to coordinates if mapping differs in DB
+                const hospLat = hospital.latitude || hospital.lat;
+                const hospLon = hospital.longitude || hospital.lon;
+                
+                hospitalMarker = L.marker([hospLat, hospLon]).addTo(map).bindPopup(hospital.name);
+                
+                // OSRM Routing
+                const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${lon},${lat};${hospLon},${hospLat}?overview=full&geometries=geojson`;
+                
+                try {
+                    const routeResponse = await fetch(osrmUrl);
+                    const routeData = await routeResponse.json();
+                    
+                    if (routeData.code === "Ok") {
+                        const coordinates = routeData.routes[0].geometry.coordinates;
+                        const latLngs = coordinates.map(coord => [coord[1], coord[0]]);
+                        
+                        routeLine = L.polyline(latLngs, {color: 'red', weight: 5, opacity: 0.8}).addTo(map);
+                        
+                        const driveTimeMins = Math.round(routeData.routes[0].duration / 60);
+                        const distanceKm = (routeData.routes[0].distance / 1000).toFixed(1);
+                        resultBox.innerHTML += `<br><strong>Est. Distance:</strong> ${distanceKm} km<br><strong>Est. Drive Time:</strong> ${driveTimeMins} mins`;
+                    } else {
+                        throw new Error("OSRM Routing failed");
+                    }
+                } catch (e) {
+                    console.error(e);
+                    routeLine = L.polyline([[lat, lon], [hospLat, hospLon]], {color: 'red', weight: 4, dashArray: '10, 10'}).addTo(map);
+                }
+                
+                map.fitBounds(routeLine.getBounds(), {padding: [50, 50]});
+
+            } catch (error) {
+                alert("Failed to connect to backend API. Is Uvicorn running?");
+            } finally {
+                // --- REMOVE MAP OVERLAY LOADER ---
+                if (btn) btn.disabled = false;
+                overlay.style.display = 'none'; // Hide the spinner
+            }
+        }
+
+        async function dispatchAmbulance(hospitalId, icuCount, ventCount) {
+            // Updated Payload and URL to match new backend
+            const payload = {
+                hospital_id: hospitalId,
+                icu_count: icuCount,
+                ventilator_count: ventCount
+            };
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/route', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    alert("Ambulance Dispatched! Hospital cloud inventory updated.");
+                    document.getElementById('result').style.display = 'none';
+                    if (patientMarker) map.removeLayer(patientMarker);
+                    if (routeLine) map.removeLayer(routeLine);
+                    if (hospitalMarker) map.removeLayer(hospitalMarker);
+                } else {
+                    alert("Failed to update inventory.");
+                }
+            } catch (error) {
+                alert("Network error while dispatching.");
+            }
+        }
+    </script>
+</body>
+</html>

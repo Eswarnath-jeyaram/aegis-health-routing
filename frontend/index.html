@@ -3,34 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <title>AegisLink - Health Referral Optimizer</title>
+    
+    <!-- Google Fonts for modern typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        #sidebar { width: 350px; background: #f8f9fa; padding: 20px; box-shadow: 2px 0 5px rgba(0,0,0,0.1); z-index: 1000; overflow-y: auto;}
+        /* Dark Theme Variables */
+        :root {
+            --bg-dark: #000000; 
+            --glass-panel: rgba(15, 23, 42, 0.85);
+            --neon-accent: #0ea5e9;
+            --danger-red: #ef4444;
+            --success-green: #10b981;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            display: flex; 
+            height: 100vh; 
+            overflow: hidden; 
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+        }
+
+        /* Glassmorphism Sidebar */
+        #sidebar { 
+            width: 380px; 
+            background: var(--glass-panel); 
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 25px; 
+            box-shadow: 5px 0 25px rgba(0,0,0,0.8); 
+            z-index: 1000; 
+            overflow-y: auto;
+            border-right: 1px solid rgba(255,255,255,0.05);
+        }
         
-        /* New Map Wrapper and Overlay Styles */
-        #map-wrapper { position: relative; flex-grow: 1; height: 100vh; }
-        #map { width: 100%; height: 100%; }
+        /* Custom Scrollbar */
+        #sidebar::-webkit-scrollbar { width: 6px; }
+        #sidebar::-webkit-scrollbar-track { background: transparent; }
+        #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+
+        #map-wrapper { position: relative; flex-grow: 1; height: 100vh; background: #000000; }
         
+        /* THE MAGIC FILTER: Inverts the standard map tiles to make roads/text white on black */
+        .leaflet-tile {
+            filter: invert(100%) hue-rotate(180deg) contrast(110%);
+        }
+        
+        #map { width: 100%; height: 100%; background: #000000; }
+        
+        /* Cyberpunk Loader Overlay */
         #loader-overlay {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(255, 255, 255, 0.75);
-            backdrop-filter: blur(2px);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(6px);
             z-index: 9999;
-            display: none; /* Hidden by default */
+            display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
         }
 
+        /* Neon Pulse Spinner */
         .spinner {
-            border: 6px solid #f3f3f3;
-            border-top: 6px solid #e74c3c;
+            border: 4px solid rgba(14, 165, 233, 0.1);
+            border-top: 4px solid var(--neon-accent);
             border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            animation: spin 1s linear infinite;
+            width: 70px;
+            height: 70px;
+            animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+            box-shadow: 0 0 20px rgba(14, 165, 233, 0.4);
         }
 
         @keyframes spin { 
@@ -39,20 +87,130 @@
         }
 
         .loader-text {
-            margin-top: 15px;
-            font-size: 20px;
-            color: #2c3e50;
-            font-weight: bold;
+            margin-top: 20px;
+            font-size: 18px;
+            color: var(--neon-accent);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(14, 165, 233, 0.5);
         }
 
-        h2 { color: #2c3e50; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; }
-        input[type="number"], input[type="text"] { width: 100%; padding: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background: #e74c3c; color: white; border: none; font-size: 16px; cursor: pointer; border-radius: 5px;}
-        button:hover { background: #c0392b; }
-        button:disabled { cursor: not-allowed; opacity: 0.7; }
-        #result { margin-top: 20px; padding: 15px; background: #d4edda; color: #155724; border-radius: 5px; display: none; }
+        h2 { 
+            color: #fff; 
+            font-weight: 700;
+            font-size: 24px;
+            margin-top: 0;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+            padding-bottom: 15px;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group { margin-bottom: 20px; }
+        
+        label { 
+            display: block; 
+            font-size: 13px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500; 
+            margin-bottom: 8px; 
+        }
+
+        /* Trendy Dark Inputs */
+        input[type="number"], input[type="text"] { 
+            width: 100%; 
+            padding: 12px 15px; 
+            box-sizing: border-box; 
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--neon-accent);
+            box-shadow: 0 0 10px rgba(14, 165, 233, 0.3);
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        .resource-input { margin-bottom: 8px; }
+
+        /* Floating Gradient Button */
+        button#dispatch-btn { 
+            width: 100%; 
+            padding: 15px; 
+            background: linear-gradient(135deg, var(--danger-red), #b91c1c);
+            color: white; 
+            border: none; 
+            font-size: 16px; 
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer; 
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        button#dispatch-btn:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6);
+        }
+
+        button:disabled { 
+            cursor: not-allowed; 
+            opacity: 0.5; 
+            transform: none !important; 
+            box-shadow: none !important;
+        }
+
+        /* Glassy Success Result Box */
+        #result { 
+            margin-top: 25px; 
+            padding: 20px; 
+            background: rgba(16, 185, 129, 0.1); 
+            color: var(--success-green); 
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 8px; 
+            display: none; 
+            font-size: 14px;
+            line-height: 1.6;
+            backdrop-filter: blur(5px);
+        }
+
+        #result strong {
+            color: #fff;
+            font-size: 16px;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        /* Secondary Confirm Button */
+        #result button {
+            width: 100%;
+            padding: 12px;
+            background: var(--success-green);
+            color: #0f172a;
+            border: none;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        #result button:hover {
+            background: #34d399;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -96,16 +254,47 @@
             <div class="loader-text">Analyzing Live Inventory & Routing...</div>
         </div>
     </div>
+    
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         var map = L.map('map').setView([13.0000, 80.2000], 12);
+        
+        // --- FREE NO-AUTH MAP TILES (Inverted via CSS) ---
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
         }).addTo(map);
 
-        var patientMarker;
         var hospitalMarker;
         var routeLine;
+
+        // --- INTERACTIVE PATIENT MARKER ---
+        var patientMarker = L.marker([13.0000, 80.2000], {
+            draggable: true,
+            title: "Drag to set Patient Location"
+        }).addTo(map).bindPopup("Drag me to set patient location!").openPopup();
+
+        // Update inputs when marker is dragged
+        patientMarker.on('dragend', function(e) {
+            var position = patientMarker.getLatLng();
+            document.getElementById('lat').value = position.lat.toFixed(4);
+            document.getElementById('lon').value = position.lng.toFixed(4);
+        });
+
+        // Update marker when inputs are typed
+        function updateMarkerFromInputs() {
+            var lat = parseFloat(document.getElementById('lat').value);
+            var lon = parseFloat(document.getElementById('lon').value);
+            if (!isNaN(lat) && !isNaN(lon)) {
+                var newLatLng = new L.LatLng(lat, lon);
+                patientMarker.setLatLng(newLatLng);
+                map.panTo(newLatLng);
+            }
+        }
+
+        document.getElementById('lat').addEventListener('input', updateMarkerFromInputs);
+        document.getElementById('lon').addEventListener('input', updateMarkerFromInputs);
+        // ------------------------------------
 
         function addInputIfNeeded(currentElement) {
             const container = document.getElementById('dynamic-resources');
@@ -116,7 +305,6 @@
                 newInput.type = 'text';
                 newInput.className = 'resource-input';
                 newInput.placeholder = 'Add another...';
-                newInput.style.marginTop = '5px';
                 newInput.oninput = function() { addInputIfNeeded(this) };
                 container.appendChild(newInput);
             }
@@ -128,7 +316,6 @@
             const icuStr = document.getElementById('icu').value;
             const ventStr = document.getElementById('vent').value;
 
-            // Input Validation
             if (latStr === '' || isNaN(latStr) || lonStr === '' || isNaN(lonStr)) {
                 alert("Please enter valid numeric coordinates for the patient.");
                 return;
@@ -138,14 +325,13 @@
                 return;
             }
 
-            // --- TRIGGER MAP OVERLAY LOADER ---
             const btn = document.getElementById('dispatch-btn');
             const overlay = document.getElementById('loader-overlay');
             const resultBox = document.getElementById('result');
             
             if (btn) btn.disabled = true;
-            resultBox.style.display = 'none'; // Hide old results
-            overlay.style.display = 'flex';   // Show the central spinner
+            resultBox.style.display = 'none'; 
+            overlay.style.display = 'flex';   
 
             try {
                 const lat = parseFloat(latStr);
@@ -153,46 +339,52 @@
                 const icu = parseInt(icuStr);
                 const vent = parseInt(ventStr);
 
-                // Fetch live hospital data from MongoDB Backend
-                const response = await fetch('http://127.0.0.1:8000/hospitals');
+                // Send patient position & required resources to the new optimization endpoint
+                const response = await fetch('http://127.0.0.1:8000/optimize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        patient_lat: lat,
+                        patient_lon: lon,
+                        required_icu: icu,
+                        required_vent: vent
+                    })
+                });
 
                 if (!response.ok) {
                     const err = await response.json();
-                    alert("Error: " + (err.detail || "Not Found"));
+                    alert("Error: " + (err.detail || "No suitable hospital found"));
                     return;
                 }
 
                 const data = await response.json();
-                
-                // For this UI flow, we select the first available hospital from the cloud data
-                // (In a full engine, you would sort this array by distance first)
-                const hospital = data.hospitals[0]; 
-
-                // Resolve capacity variables based on MongoDB schema
+                const hospital = data.optimal_hospital; 
                 const availableIcu = hospital.available_icu || hospital.capacity?.icu_beds || 'N/A';
 
-                // Show Success Results
                 resultBox.style.display = 'block';
                 resultBox.innerHTML = `
-                    <strong>Match Found!</strong><br>
+                    <strong>Match Found!</strong>
                     Hospital: ${hospital.name}<br>
                     Available ICU Beds: ${availableIcu}<br>
-                    <button onclick="dispatchAmbulance('${hospital.id}', ${icu}, ${vent})" style="margin-top: 10px; background: #28a745;">Confirm & Dispatch</button>
+                    <button onclick="dispatchAmbulance('${hospital.id}', ${icu}, ${vent})" style="margin-top: 15px;">Confirm & Dispatch</button>
                 `;
 
                 if (patientMarker) map.removeLayer(patientMarker);
                 if (hospitalMarker) map.removeLayer(hospitalMarker);
                 if (routeLine) map.removeLayer(routeLine);
 
-                patientMarker = L.marker([lat, lon]).addTo(map).bindPopup("Ambulance Location").openPopup();
+                patientMarker = L.marker([lat, lon], {draggable: true}).addTo(map).bindPopup("Ambulance Location").openPopup();
+                patientMarker.on('dragend', function(e) {
+                    var position = patientMarker.getLatLng();
+                    document.getElementById('lat').value = position.lat.toFixed(4);
+                    document.getElementById('lon').value = position.lng.toFixed(4);
+                });
                 
-                // Fallback to coordinates if mapping differs in DB
                 const hospLat = hospital.latitude || hospital.lat;
                 const hospLon = hospital.longitude || hospital.lon;
                 
                 hospitalMarker = L.marker([hospLat, hospLon]).addTo(map).bindPopup(hospital.name);
                 
-                // OSRM Routing
                 const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${lon},${lat};${hospLon},${hospLat}?overview=full&geometries=geojson`;
                 
                 try {
@@ -203,17 +395,17 @@
                         const coordinates = routeData.routes[0].geometry.coordinates;
                         const latLngs = coordinates.map(coord => [coord[1], coord[0]]);
                         
-                        routeLine = L.polyline(latLngs, {color: 'red', weight: 5, opacity: 0.8}).addTo(map);
+                        routeLine = L.polyline(latLngs, {color: '#0ea5e9', weight: 6, opacity: 0.9}).addTo(map);
                         
                         const driveTimeMins = Math.round(routeData.routes[0].duration / 60);
                         const distanceKm = (routeData.routes[0].distance / 1000).toFixed(1);
-                        resultBox.innerHTML += `<br><strong>Est. Distance:</strong> ${distanceKm} km<br><strong>Est. Drive Time:</strong> ${driveTimeMins} mins`;
+                        resultBox.innerHTML += `<br><br><strong>Est. Distance:</strong> ${distanceKm} km<br><strong>Est. Drive Time:</strong> ${driveTimeMins} mins`;
                     } else {
                         throw new Error("OSRM Routing failed");
                     }
                 } catch (e) {
                     console.error(e);
-                    routeLine = L.polyline([[lat, lon], [hospLat, hospLon]], {color: 'red', weight: 4, dashArray: '10, 10'}).addTo(map);
+                    routeLine = L.polyline([[lat, lon], [hospLat, hospLon]], {color: '#0ea5e9', weight: 4, dashArray: '10, 10'}).addTo(map);
                 }
                 
                 map.fitBounds(routeLine.getBounds(), {padding: [50, 50]});
@@ -221,14 +413,12 @@
             } catch (error) {
                 alert("Failed to connect to backend API. Is Uvicorn running?");
             } finally {
-                // --- REMOVE MAP OVERLAY LOADER ---
                 if (btn) btn.disabled = false;
-                overlay.style.display = 'none'; // Hide the spinner
+                overlay.style.display = 'none'; 
             }
         }
 
         async function dispatchAmbulance(hospitalId, icuCount, ventCount) {
-            // Updated Payload and URL to match new backend
             const payload = {
                 hospital_id: hospitalId,
                 icu_count: icuCount,

@@ -19,20 +19,23 @@ def get_all_hospitals():
     hospitals = list(hospitals_collection.find({}, {"_id": 0}))
     return hospitals
 
-def update_hospital_capacity(hospital_id: str, icu_delta: int = 1, vent_delta: int = 1):
+def update_hospital_capacity(hospital_id: str, icu_delta: int = 1, vent_delta: int = 1, general_delta: int = 0):
     """Atomically decrease hospital resources ONLY if capacity exists."""
     
-    # We add a filter checking that current beds are greater than or equal to ($gte) the requested beds
+    # FIX: Pointed the filters to the nested 'capacity' fields from your database schema
+    # FIX: Added 'general_beds' to the filter and increment logic
     result = hospitals_collection.update_one(
         {
             "id": hospital_id,
-            "available_icu": {"$gte": icu_delta},
-            "available_ventilators": {"$gte": vent_delta}
+            "capacity.icu_beds": {"$gte": icu_delta},
+            "capacity.ventilators": {"$gte": vent_delta},
+            "capacity.general_beds": {"$gte": general_delta}
         },
         {
             "$inc": {
-                "available_icu": -icu_delta,
-                "available_ventilators": -vent_delta
+                "capacity.icu_beds": -icu_delta,
+                "capacity.ventilators": -vent_delta,
+                "capacity.general_beds": -general_delta
             }
         }
     )

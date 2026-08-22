@@ -1,11 +1,11 @@
 import sys
 from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure, OperationFailure
 
 # ==========================================
 # Phase 1: SET YOUR CONNECTION
 # ==========================================
-MONGO_URI = "paste_your_mongo_uri_here"
+# Added the WSL TLS bypass flag to the end of your specific link!
+MONGO_URI = "mongodb+srv://eswarnathj_db_user:Aegis1234@aegisdata.cifvhwa.mongodb.net/?appName=aegisdata&tlsAllowInvalidCertificates=true"
 
 def get_hospital_collection():
     """Connects to MongoDB and returns the 'hospitals' collection."""
@@ -13,20 +13,16 @@ def get_hospital_collection():
         client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
         client.admin.command('ping')
         
-        # THE FIX: Explicitly target the exact database name from your screenshot
+        # Explicitly target the exact database name
         db = client["aegis_database"]
         
         print(f"✅ Connected successfully to Database: {db.name}")
         return db.get_collection("hospitals")
         
-    except ConnectionFailure:
-        print("🛑 Error: Could not connect to MongoDB. Check connection string.")
-        sys.exit(1)
     except Exception as e:
-        print(f"🛑 Error: {e}")
+        # If it fails, this will now print the REAL, detailed error from the system
+        print(f"🛑 EXACT ERROR: {e}")
         sys.exit(1)
-
-
 
 # ========================================================
 # Phase 2: ALL 100 FULLY PARAMETERIZED CHENNAI HOSPITALS

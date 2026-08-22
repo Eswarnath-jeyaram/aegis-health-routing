@@ -20,12 +20,14 @@ class RouteRequest(BaseModel):
     hospital_id: str
     icu_count: int = 1
     ventilator_count: int = 1
+    general_count: int = 0  # FIX: Added general beds for the dispatch decrement
 
 class OptimizeRequest(BaseModel):
     patient_lat: float
     patient_lon: float
     required_icu: int = 1
     required_vent: int = 1
+    required_general: int = 0  # FIX: Added general beds for the optimization filter
 
 def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Calculate the Great-Circle distance in kilometers using the Haversine formula."""
@@ -48,15 +50,17 @@ def get_hospitals_endpoint():
 
 @app.post("/optimize")
 def optimize_referral(request: OptimizeRequest):
-    """Find the nearest hospital matching the required ICU and ventilator capacity."""
+    """Find the nearest hospital matching the required ICU, Ventilator, AND General capacity."""
     hospitals = get_all_hospitals()
     
     eligible = []
     for h in hospitals:
         avail_icu = h.get("available_icu") or (h.get("capacity", {}).get("icu_beds", 0)) or 0
         avail_vent = h.get("available_vent") or (h.get("capacity", {}).get("ventilators", 0)) or 0
+        avail_general = h.get("available_general") or (h.get("capacity", {}).get("general_beds", 0)) or 0
         
-        if avail_icu >= request.required_icu and avail_vent >= request.required_vent:
+        # FIX: Now strictly enforcing the general beds limit before considering a hospital eligible
+        if avail_icu >= request.required_icu and avail_vent >= request.required_vent and avail_general >= request.required_general:
             h_lat = h.get("latitude") or h.get("lat")
             h_lon = h.get("longitude") or h.get("lon")
             
@@ -67,7 +71,7 @@ def optimize_referral(request: OptimizeRequest):
     if not eligible:
         raise HTTPException(
             status_code=404, 
-            detail="No hospitals found with the requested ICU/Ventilator capacity."
+            detail="No hospitals found with the requested ICU/Ventilator/General capacity."
         )
 
     # Sort by straight-line distance
@@ -80,7 +84,8 @@ def route_ambulance(request: RouteRequest):
     success = update_hospital_capacity(
         request.hospital_id, 
         request.icu_count, 
-        request.ventilator_count
+        request.ventilator_count,
+        request.general_count  # FIX: Now passing the general count to engine.py
     )
     if not success:
         raise HTTPException(status_code=404, detail="Hospital not found or update failed")

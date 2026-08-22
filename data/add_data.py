@@ -8,20 +8,25 @@ from pymongo.errors import ConnectionFailure, OperationFailure
 MONGO_URI = "paste_your_mongo_uri_here"
 
 def get_hospital_collection():
+    """Connects to MongoDB and returns the 'hospitals' collection."""
     try:
         client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
         client.admin.command('ping')
-        db = client.get_default_database()
-        if db is None:
-            db = client.get_database("AegisLink")
+        
+        # THE FIX: Explicitly target the exact database name from your screenshot
+        db = client["aegis_database"]
+        
         print(f"✅ Connected successfully to Database: {db.name}")
         return db.get_collection("hospitals")
+        
     except ConnectionFailure:
         print("🛑 Error: Could not connect to MongoDB. Check connection string.")
         sys.exit(1)
     except Exception as e:
         print(f"🛑 Error: {e}")
         sys.exit(1)
+
+
 
 # ========================================================
 # Phase 2: ALL 100 FULLY PARAMETERIZED CHENNAI HOSPITALS

@@ -82,6 +82,7 @@
         <div id="results-panel" class="hidden mt-6 bg-[#0f292e] rounded-lg p-5 border border-[#1e4b4a]">
             <h2 class="text-white text-lg font-bold mb-3">Match Found!</h2>
             <p class="text-[#34d399] text-sm mb-1">Hospital: <span id="res-hospital"></span></p>
+            <p class="text-[#34d399] text-sm mb-1">Available General Beds: <span id="res-general"></span></p>
             <p class="text-[#34d399] text-sm mb-4">Available ICU Beds: <span id="res-icu"></span></p>
             
             <button id="dispatch-btn" class="w-full bg-[#34d399] hover:bg-[#10b981] text-gray-900 font-bold py-3 rounded text-sm mb-5 transition-colors active:scale-95">
@@ -190,6 +191,7 @@
                 currentHospitalId = hospital.id || hospital.hospital_id;
 
                 document.getElementById('res-hospital').innerText = hospital.name;
+                document.getElementById('res-general').innerText = (hospital.capacity?.general_beds || hospital.general_beds || 0);
                 document.getElementById('res-icu').innerText = (hospital.capacity?.icu_beds || hospital.icu_beds || 0);
                 resultsPanel.classList.remove('hidden');
 

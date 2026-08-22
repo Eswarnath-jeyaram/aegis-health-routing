@@ -2,449 +2,262 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>AegisLink - Health Referral Optimizer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AegisLink - Health Referral Routing</title>
     
-    <!-- Google Fonts for modern typography -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
+    <!-- Leaflet Routing Machine -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
     <style>
-        /* Dark Theme Variables */
-        :root {
-            --bg-dark: #000000; 
-            --glass-panel: rgba(15, 23, 42, 0.85);
-            --neon-accent: #0ea5e9;
-            --danger-red: #ef4444;
-            --success-green: #10b981;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-        }
-
-        body { 
-            font-family: 'Inter', sans-serif; 
-            margin: 0; 
-            display: flex; 
-            height: 100vh; 
-            overflow: hidden; 
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-        }
-
-        /* Glassmorphism Sidebar */
-        #sidebar { 
-            width: 380px; 
-            background: var(--glass-panel); 
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            padding: 25px; 
-            box-shadow: 5px 0 25px rgba(0,0,0,0.8); 
-            z-index: 1000; 
-            overflow-y: auto;
-            border-right: 1px solid rgba(255,255,255,0.05);
-        }
-        
-        /* Custom Scrollbar */
-        #sidebar::-webkit-scrollbar { width: 6px; }
-        #sidebar::-webkit-scrollbar-track { background: transparent; }
-        #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
-
-        #map-wrapper { position: relative; flex-grow: 1; height: 100vh; background: #000000; }
-        
-        /* THE MAGIC FILTER: Inverts the standard map tiles to make roads/text white on black */
+        /* The Magic Dark Mode Geographical Map Trick */
         .leaflet-tile {
-            filter: invert(100%) hue-rotate(180deg) contrast(110%);
+            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
         }
-        
-        #map { width: 100%; height: 100%; background: #000000; }
-        
-        /* Cyberpunk Loader Overlay */
-        #loader-overlay {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(6px);
-            z-index: 9999;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+        /* Hide the ugly text instructions from the routing machine */
+        .leaflet-routing-container {
+            display: none !important;
         }
-
-        /* Neon Pulse Spinner */
-        .spinner {
-            border: 4px solid rgba(14, 165, 233, 0.1);
-            border-top: 4px solid var(--neon-accent);
-            border-radius: 50%;
-            width: 70px;
-            height: 70px;
-            animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
-            box-shadow: 0 0 20px rgba(14, 165, 233, 0.4);
-        }
-
-        @keyframes spin { 
-            0% { transform: rotate(0deg); } 
-            100% { transform: rotate(360deg); } 
-        }
-
-        .loader-text {
-            margin-top: 20px;
-            font-size: 18px;
-            color: var(--neon-accent);
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            font-weight: 700;
-            text-shadow: 0 0 10px rgba(14, 165, 233, 0.5);
-        }
-
-        h2 { 
-            color: #fff; 
-            font-weight: 700;
-            font-size: 24px;
-            margin-top: 0;
-            border-bottom: 2px solid rgba(255,255,255,0.1);
-            padding-bottom: 15px;
-            letter-spacing: 0.5px;
-        }
-
-        .form-group { margin-bottom: 20px; }
-        
-        label { 
-            display: block; 
-            font-size: 13px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 500; 
-            margin-bottom: 8px; 
-        }
-
-        /* Trendy Dark Inputs */
-        input[type="number"], input[type="text"] { 
-            width: 100%; 
-            padding: 12px 15px; 
-            box-sizing: border-box; 
-            background: rgba(0, 0, 0, 0.6);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: #fff;
-            border-radius: 8px;
-            font-family: 'Inter', sans-serif;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: var(--neon-accent);
-            box-shadow: 0 0 10px rgba(14, 165, 233, 0.3);
-            background: rgba(0, 0, 0, 0.9);
-        }
-
-        .resource-input { margin-bottom: 8px; }
-
-        /* Floating Gradient Button */
-        button#dispatch-btn { 
-            width: 100%; 
-            padding: 15px; 
-            background: linear-gradient(135deg, var(--danger-red), #b91c1c);
-            color: white; 
-            border: none; 
-            font-size: 16px; 
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            cursor: pointer; 
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
-            transition: all 0.3s ease;
-            margin-top: 10px;
-        }
-
-        button#dispatch-btn:hover { 
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6);
-        }
-
-        button:disabled { 
-            cursor: not-allowed; 
-            opacity: 0.5; 
-            transform: none !important; 
-            box-shadow: none !important;
-        }
-
-        /* Glassy Success Result Box */
-        #result { 
-            margin-top: 25px; 
-            padding: 20px; 
-            background: rgba(16, 185, 129, 0.1); 
-            color: var(--success-green); 
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            border-radius: 8px; 
-            display: none; 
-            font-size: 14px;
-            line-height: 1.6;
-            backdrop-filter: blur(5px);
-        }
-
-        #result strong {
-            color: #fff;
-            font-size: 16px;
-            display: block;
-            margin-bottom: 5px;
-        }
-
-        /* Secondary Confirm Button */
-        #result button {
-            width: 100%;
-            padding: 12px;
-            background: var(--success-green);
-            color: #0f172a;
-            border: none;
-            border-radius: 6px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        #result button:hover {
-            background: #34d399;
-            box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
-        }
+        /* Custom scrollbar for sidebar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
     </style>
 </head>
-<body>
+<body class="bg-gray-950 text-white flex h-screen overflow-hidden font-sans">
 
-    <div id="sidebar">
-        <h2>AegisLink Dispatch</h2>
+    <!-- Left Sidebar -->
+    <div class="w-[400px] bg-[#0b1120] p-6 flex flex-col shadow-2xl z-10 overflow-y-auto border-r border-gray-800">
+        <h1 class="text-2xl font-bold mb-8 tracking-wide">AegisLink Dispatch</h1>
         
-        <div class="form-group">
-            <label>Patient Latitude (Chennai)</label>
-            <input type="number" id="lat" value="13.0000" step="0.0001">
-        </div>
-        <div class="form-group">
-            <label>Patient Longitude (Chennai)</label>
-            <input type="number" id="lon" value="80.2000" step="0.0001">
-        </div>
-        <div class="form-group">
-            <label>Required ICU Beds</label>
-            <input type="number" id="icu" value="1" min="0">
-        </div>
-        <div class="form-group">
-            <label>Required Ventilators</label>
-            <input type="number" id="vent" value="1" min="0">
-        </div>
-        <div class="form-group">
-            <label>Required Clinical Resources</label>
-            <div id="dynamic-resources">
-                <input type="text" class="resource-input" placeholder="e.g. Trauma Surgeon" oninput="addInputIfNeeded(this)">
+        <div class="space-y-5">
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-2 tracking-wider">PATIENT LATITUDE (CHENNAI)</label>
+                <input type="number" id="patient-lat" value="13.0000" step="0.0001" class="w-full bg-[#111827] border border-gray-800 text-white rounded p-3 focus:outline-none focus:border-red-500 transition-colors">
+            </div>
+            
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-2 tracking-wider">PATIENT LONGITUDE (CHENNAI)</label>
+                <input type="number" id="patient-lon" value="80.2000" step="0.0001" class="w-full bg-[#111827] border border-gray-800 text-white rounded p-3 focus:outline-none focus:border-red-500 transition-colors">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-2 tracking-wider">REQUIRED GENERAL BEDS</label>
+                <input type="number" id="general-beds" value="0" min="0" class="w-full bg-[#111827] border border-gray-800 text-white rounded p-3 focus:outline-none focus:border-red-500 transition-colors">
+            </div>
+            
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-2 tracking-wider">REQUIRED ICU BEDS</label>
+                <input type="number" id="icu-beds" value="0" min="0" class="w-full bg-[#111827] border border-gray-800 text-white rounded p-3 focus:outline-none focus:border-red-500 transition-colors">
+            </div>
+            
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-2 tracking-wider">REQUIRED VENTILATORS</label>
+                <input type="number" id="ventilators" value="0" min="0" class="w-full bg-[#111827] border border-gray-800 text-white rounded p-3 focus:outline-none focus:border-red-500 transition-colors">
+            </div>
+            
+            <!-- Dynamic Resources Container -->
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-2 tracking-wider">REQUIRED CLINICAL RESOURCES</label>
+                <div id="resources-container" class="space-y-2">
+                    <input type="text" placeholder="e.g. Trauma Surgeon" class="w-full bg-[#111827] border border-gray-800 text-gray-300 rounded p-3 focus:outline-none focus:border-red-500 transition-colors">
+                </div>
             </div>
         </div>
 
-        <button id="dispatch-btn" onclick="findRoute()">Find Optimal Route</button>
+        <button id="find-route-btn" class="mt-8 w-full bg-[#dc2626] hover:bg-[#b91c1c] text-white font-bold py-3.5 px-4 rounded-lg shadow-lg shadow-red-900/50 transition-all active:scale-95">
+            FIND OPTIMAL ROUTE
+        </button>
+        
+        <div id="status-message" class="mt-4 text-sm text-center hidden"></div>
 
-        <div id="result"></div>
-    </div>
-
-    <!-- Map and Central Loader Overlay -->
-    <div id="map-wrapper">
-        <div id="map"></div>
-        <div id="loader-overlay">
-            <div class="spinner"></div>
-            <div class="loader-text">Analyzing Live Inventory & Routing...</div>
+        <!-- Custom Match Panel -->
+        <div id="results-panel" class="hidden mt-6 bg-[#0f292e] rounded-lg p-5 border border-[#1e4b4a]">
+            <h2 class="text-white text-lg font-bold mb-3">Match Found!</h2>
+            <p class="text-[#34d399] text-sm mb-1">Hospital: <span id="res-hospital"></span></p>
+            <p class="text-[#34d399] text-sm mb-4">Available ICU Beds: <span id="res-icu"></span></p>
+            
+            <button id="dispatch-btn" class="w-full bg-[#34d399] hover:bg-[#10b981] text-gray-900 font-bold py-3 rounded text-sm mb-5 transition-colors active:scale-95">
+                CONFIRM & DISPATCH
+            </button>
+            
+            <p class="text-white text-sm font-bold mb-1">Est. Distance:</p>
+            <p class="text-[#34d399] text-sm mb-3" id="res-dist">Calculating...</p>
+            
+            <p class="text-white text-sm font-bold mb-1">Est. Drive Time:</p>
+            <p class="text-[#34d399] text-sm" id="res-time">Calculating...</p>
         </div>
     </div>
-    
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Right Side Map -->
+    <div id="map" class="flex-1 h-full z-0"></div>
+
     <script>
-        var map = L.map('map').setView([13.0000, 80.2000], 12);
-        
-        // --- FREE NO-AUTH MAP TILES (Inverted via CSS) ---
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            maxZoom: 19
-        }).addTo(map);
-
-        var hospitalMarker;
-        var routeLine;
-
-        // --- INTERACTIVE PATIENT MARKER ---
-        var patientMarker = L.marker([13.0000, 80.2000], {
-            draggable: true,
-            title: "Drag to set Patient Location"
-        }).addTo(map).bindPopup("Drag me to set patient location!").openPopup();
-
-        // Update inputs when marker is dragged
-        patientMarker.on('dragend', function(e) {
-            var position = patientMarker.getLatLng();
-            document.getElementById('lat').value = position.lat.toFixed(4);
-            document.getElementById('lon').value = position.lng.toFixed(4);
-        });
-
-        // Update marker when inputs are typed
-        function updateMarkerFromInputs() {
-            var lat = parseFloat(document.getElementById('lat').value);
-            var lon = parseFloat(document.getElementById('lon').value);
-            if (!isNaN(lat) && !isNaN(lon)) {
-                var newLatLng = new L.LatLng(lat, lon);
-                patientMarker.setLatLng(newLatLng);
-                map.panTo(newLatLng);
-            }
-        }
-
-        document.getElementById('lat').addEventListener('input', updateMarkerFromInputs);
-        document.getElementById('lon').addEventListener('input', updateMarkerFromInputs);
-        // ------------------------------------
-
-        function addInputIfNeeded(currentElement) {
-            const container = document.getElementById('dynamic-resources');
-            const inputs = container.getElementsByClassName('resource-input');
+        // Dynamic Resource Inputs Logic
+        const container = document.getElementById('resources-container');
+        container.addEventListener('input', (e) => {
+            const inputs = container.querySelectorAll('input');
+            const lastInput = inputs[inputs.length - 1];
             
-            if (currentElement === inputs[inputs.length - 1] && currentElement.value.trim() !== '') {
+            if (e.target === lastInput && lastInput.value.trim() !== '') {
                 const newInput = document.createElement('input');
                 newInput.type = 'text';
-                newInput.className = 'resource-input';
                 newInput.placeholder = 'Add another...';
-                newInput.oninput = function() { addInputIfNeeded(this) };
+                newInput.className = 'w-full bg-[#111827] border border-gray-800 text-gray-300 rounded p-3 focus:outline-none focus:border-red-500 transition-colors';
                 container.appendChild(newInput);
             }
-        }
+        });
 
-        async function findRoute() {
-            const latStr = document.getElementById('lat').value;
-            const lonStr = document.getElementById('lon').value;
-            const icuStr = document.getElementById('icu').value;
-            const ventStr = document.getElementById('vent').value;
+        // Initialize Map
+        const map = L.map('map').setView([13.0827, 80.2707], 12);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
 
-            if (latStr === '' || isNaN(latStr) || lonStr === '' || isNaN(lonStr)) {
-                alert("Please enter valid numeric coordinates for the patient.");
-                return;
-            }
-            if (icuStr === '' || isNaN(icuStr) || ventStr === '' || isNaN(ventStr)) {
-                alert("Please enter a valid number for ICU beds and Ventilators.");
-                return;
-            }
+        let patientMarker = L.marker([13.0000, 80.2000], { draggable: true }).addTo(map)
+            .bindPopup("Ambulance Location").openPopup();
 
-            const btn = document.getElementById('dispatch-btn');
-            const overlay = document.getElementById('loader-overlay');
-            const resultBox = document.getElementById('result');
+        patientMarker.on('dragend', function () {
+            const latLng = patientMarker.getLatLng();
+            document.getElementById('patient-lat').value = latLng.lat.toFixed(4);
+            document.getElementById('patient-lon').value = latLng.lng.toFixed(4);
+        });
+
+        let routingControl = null;
+        let hospitalMarker = null;
+        let currentHospitalId = null;
+
+        // Routing Logic
+        document.getElementById('find-route-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('find-route-btn');
+            const statusDiv = document.getElementById('status-message');
+            const resultsPanel = document.getElementById('results-panel');
             
-            if (btn) btn.disabled = true;
-            resultBox.style.display = 'none'; 
-            overlay.style.display = 'flex';   
+            const patientLat = parseFloat(document.getElementById('patient-lat').value) || 13.0000;
+            const patientLon = parseFloat(document.getElementById('patient-lon').value) || 80.2000;
+            const reqGen = parseInt(document.getElementById('general-beds').value) || 0;
+            const reqIcu = parseInt(document.getElementById('icu-beds').value) || 0;
+            const reqVent = parseInt(document.getElementById('ventilators').value) || 0;
+            
+            btn.innerText = "ANALYZING...";
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+            statusDiv.className = "mt-4 text-sm text-center hidden";
+            resultsPanel.classList.add('hidden');
+
+            // CLEAR OLD ROUTES AND MARKERS COMPLETELY
+            if (routingControl) {
+                map.removeControl(routingControl);
+                routingControl = null;
+            }
+            if (hospitalMarker) {
+                map.removeLayer(hospitalMarker);
+                hospitalMarker = null;
+            }
 
             try {
-                const lat = parseFloat(latStr);
-                const lon = parseFloat(lonStr);
-                const icu = parseInt(icuStr);
-                const vent = parseInt(ventStr);
+                const backendUrl = 'https://aegis-health-routing.onrender.com';
 
-                // Send patient position & required resources to the new optimization endpoint
-                const response = await fetch('https://aegis-health-routing.onrender.com/optimize', {
+                const response = await fetch(`${backendUrl}/optimize`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        patient_lat: lat,
-                        patient_lon: lon,
-                        required_icu: icu,
-                        required_vent: vent
+                        patient_lat: patientLat,
+                        patient_lon: patientLon,
+                        required_general: reqGen,
+                        required_icu: reqIcu,
+                        required_vent: reqVent
                     })
                 });
 
-                if (!response.ok) {
-                    const err = await response.json();
-                    alert("Error: " + (err.detail || "No suitable hospital found"));
-                    return;
-                }
-
                 const data = await response.json();
-                const hospital = data.optimal_hospital; 
-                const availableIcu = hospital.available_icu || hospital.capacity?.icu_beds || 'N/A';
 
-                resultBox.style.display = 'block';
-                resultBox.innerHTML = `
-                    <strong>Match Found!</strong>
-                    Hospital: ${hospital.name}<br>
-                    Available ICU Beds: ${availableIcu}<br>
-                    <button onclick="dispatchAmbulance('${hospital.id}', ${icu}, ${vent})" style="margin-top: 15px;">Confirm & Dispatch</button>
-                `;
-
-                if (patientMarker) map.removeLayer(patientMarker);
-                if (hospitalMarker) map.removeLayer(hospitalMarker);
-                if (routeLine) map.removeLayer(routeLine);
-
-                patientMarker = L.marker([lat, lon], {draggable: true}).addTo(map).bindPopup("Ambulance Location").openPopup();
-                patientMarker.on('dragend', function(e) {
-                    var position = patientMarker.getLatLng();
-                    document.getElementById('lat').value = position.lat.toFixed(4);
-                    document.getElementById('lon').value = position.lng.toFixed(4);
-                });
-                
-                const hospLat = hospital.latitude || hospital.lat;
-                const hospLon = hospital.longitude || hospital.lon;
-                
-                hospitalMarker = L.marker([hospLat, hospLon]).addTo(map).bindPopup(hospital.name);
-                
-                const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${lon},${lat};${hospLon},${hospLat}?overview=full&geometries=geojson`;
-                
-                try {
-                    const routeResponse = await fetch(osrmUrl);
-                    const routeData = await routeResponse.json();
-                    
-                    if (routeData.code === "Ok") {
-                        const coordinates = routeData.routes[0].geometry.coordinates;
-                        const latLngs = coordinates.map(coord => [coord[1], coord[0]]);
-                        
-                        routeLine = L.polyline(latLngs, {color: '#0ea5e9', weight: 6, opacity: 0.9}).addTo(map);
-                        
-                        const driveTimeMins = Math.round(routeData.routes[0].duration / 60);
-                        const distanceKm = (routeData.routes[0].distance / 1000).toFixed(1);
-                        resultBox.innerHTML += `<br><br><strong>Est. Distance:</strong> ${distanceKm} km<br><strong>Est. Drive Time:</strong> ${driveTimeMins} mins`;
-                    } else {
-                        throw new Error("OSRM Routing failed");
-                    }
-                } catch (e) {
-                    console.error(e);
-                    routeLine = L.polyline([[lat, lon], [hospLat, hospLon]], {color: '#0ea5e9', weight: 4, dashArray: '10, 10'}).addTo(map);
+                if (!response.ok) {
+                    throw new Error(data.detail || "No suitable hospital found.");
                 }
-                
-                map.fitBounds(routeLine.getBounds(), {padding: [50, 50]});
+
+                const hospital = data.optimal_hospital;
+                const hLat = parseFloat(hospital.lat || hospital.latitude);
+                const hLon = parseFloat(hospital.lon || hospital.longitude);
+                currentHospitalId = hospital.id || hospital.hospital_id;
+
+                document.getElementById('res-hospital').innerText = hospital.name;
+                document.getElementById('res-icu').innerText = (hospital.capacity?.icu_beds || hospital.icu_beds || 0);
+                resultsPanel.classList.remove('hidden');
+
+                // Draw SINGLE Hospital Marker
+                hospitalMarker = L.marker([hLat, hLon]).addTo(map).bindPopup("<b>" + hospital.name + "</b>").openPopup();
+
+                // Draw Routing Line (NO DUPLICATE MARKERS)
+                routingControl = L.Routing.control({
+                    waypoints: [
+                        L.latLng(patientLat, patientLon),
+                        L.latLng(hLat, hLon)
+                    ],
+                    routeWhileDragging: false,
+                    show: false, // Hides the text box
+                    addWaypoints: false, // Prevents accidental clicks from adding points
+                    createMarker: function() { return null; }, // THE MAGIC FIX: Prevents duplicate Leaflet markers
+                    lineOptions: {
+                        styles: [{color: '#3b82f6', opacity: 0.8, weight: 6}]
+                    }
+                }).addTo(map);
+
+                routingControl.on('routesfound', function(e) {
+                    const routes = e.routes;
+                    const summary = routes[0].summary;
+                    document.getElementById('res-dist').innerText = (summary.totalDistance / 1000).toFixed(1) + " km";
+                    document.getElementById('res-time').innerText = Math.round(summary.totalTime / 60) + " mins";
+                });
 
             } catch (error) {
-                alert("Failed to connect to backend API. Is your Render service running?");
+                let msg = error.message;
+                if (msg.includes('Failed to fetch')) {
+                    msg = "Network Error: Render backend is waking up. This takes ~50 seconds on the free tier. Please wait and click again!";
+                }
+                statusDiv.innerText = msg;
+                statusDiv.className = "mt-4 text-sm text-center text-red-400 block";
             } finally {
-                if (btn) btn.disabled = false;
-                overlay.style.display = 'none'; 
+                btn.innerText = "FIND OPTIMAL ROUTE";
+                btn.classList.remove('opacity-75', 'cursor-not-allowed');
             }
-        }
+        });
 
-        async function dispatchAmbulance(hospitalId, icuCount, ventCount) {
-            const payload = {
-                hospital_id: hospitalId,
-                icu_count: icuCount,
-                ventilator_count: ventCount
-            };
-
+        // Dispatch Logic
+        document.getElementById('dispatch-btn').addEventListener('click', async () => {
+            const reqGen = parseInt(document.getElementById('general-beds').value) || 0;
+            const reqIcu = parseInt(document.getElementById('icu-beds').value) || 0;
+            const reqVent = parseInt(document.getElementById('ventilators').value) || 0;
+            
             try {
                 const response = await fetch('https://aegis-health-routing.onrender.com/route', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({
+                        hospital_id: currentHospitalId,
+                        general_count: reqGen,
+                        icu_count: reqIcu,
+                        ventilator_count: reqVent
+                    })
                 });
-
+                
                 if (response.ok) {
-                    alert("Ambulance Dispatched! Hospital cloud inventory updated.");
-                    document.getElementById('result').style.display = 'none';
-                    if (patientMarker) map.removeLayer(patientMarker);
-                    if (routeLine) map.removeLayer(routeLine);
-                    if (hospitalMarker) map.removeLayer(hospitalMarker);
+                    alert("Ambulance Dispatched! Hospital database updated successfully.");
                 } else {
-                    alert("Failed to update inventory.");
+                    alert("Database deduction failed. Check backend logs.");
                 }
-            } catch (error) {
-                alert("Network error while dispatching.");
+            } catch (err) {
+                alert("Network error: Could not connect to backend.");
             }
-        }
+        });
     </script>
 </body>
 </html>

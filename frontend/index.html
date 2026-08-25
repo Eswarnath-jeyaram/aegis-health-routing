@@ -82,6 +82,7 @@
         <div id="results-panel" class="hidden mt-6 bg-[#0f292e] rounded-lg p-5 border border-[#1e4b4a]">
             <h2 class="text-white text-lg font-bold mb-3">Match Found!</h2>
             <p class="text-[#34d399] text-sm mb-1">Hospital: <span id="res-hospital"></span></p>
+            <p class="text-[#34d399] text-sm mb-1">Contact: <span id="res-phone"></span></p> <!-- NEW PHONE UI -->
             <p class="text-[#34d399] text-sm mb-1">Available General Beds: <span id="res-general"></span></p>
             <p class="text-[#34d399] text-sm mb-4">Available ICU Beds: <span id="res-icu"></span></p>
             
@@ -136,6 +137,9 @@
         let routingControl = null;
         let hospitalMarker = null;
         let currentHospitalId = null;
+        
+        // Define backend URL locally (since you are testing updates locally before Render deployment)
+        const backendUrl = 'http://127.0.0.1:8000'; // Make sure your local server is running!
 
         // Routing Logic
         document.getElementById('find-route-btn').addEventListener('click', async () => {
@@ -165,8 +169,6 @@
             }
 
             try {
-                const backendUrl = 'https://aegis-health-routing.onrender.com';
-
                 const response = await fetch(`${backendUrl}/optimize`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -191,6 +193,7 @@
                 currentHospitalId = hospital.id || hospital.hospital_id;
 
                 document.getElementById('res-hospital').innerText = hospital.name;
+                document.getElementById('res-phone').innerText = hospital.contact_number || "N/A"; // NEW PHONE LOGIC
                 document.getElementById('res-general').innerText = (hospital.capacity?.general_beds || hospital.general_beds || 0);
                 document.getElementById('res-icu').innerText = (hospital.capacity?.icu_beds || hospital.icu_beds || 0);
                 resultsPanel.classList.remove('hidden');
@@ -198,16 +201,16 @@
                 // Draw SINGLE Hospital Marker
                 hospitalMarker = L.marker([hLat, hLon]).addTo(map).bindPopup("<b>" + hospital.name + "</b>").openPopup();
 
-                // Draw Routing Line (NO DUPLICATE MARKERS)
+                // Draw Routing Line
                 routingControl = L.Routing.control({
                     waypoints: [
                         L.latLng(patientLat, patientLon),
                         L.latLng(hLat, hLon)
                     ],
                     routeWhileDragging: false,
-                    show: false, // Hides the text box
-                    addWaypoints: false, // Prevents accidental clicks from adding points
-                    createMarker: function() { return null; }, // THE MAGIC FIX: Prevents duplicate Leaflet markers
+                    show: false, 
+                    addWaypoints: false, 
+                    createMarker: function() { return null; }, 
                     lineOptions: {
                         styles: [{color: '#3b82f6', opacity: 0.8, weight: 6}]
                     }
@@ -223,7 +226,7 @@
             } catch (error) {
                 let msg = error.message;
                 if (msg.includes('Failed to fetch')) {
-                    msg = "Network Error: Render backend is waking up. This takes ~50 seconds on the free tier. Please wait and click again!";
+                    msg = "Network Error: Ensure your local FastAPI server is running.";
                 }
                 statusDiv.innerText = msg;
                 statusDiv.className = "mt-4 text-sm text-center text-red-400 block";
@@ -233,18 +236,20 @@
             }
         });
 
-        // Dispatch Logic
+        // Dispatch Logic - UPDATED TO SEND PHONE NUMBER
         document.getElementById('dispatch-btn').addEventListener('click', async () => {
             const reqGen = parseInt(document.getElementById('general-beds').value) || 0;
             const reqIcu = parseInt(document.getElementById('icu-beds').value) || 0;
             const reqVent = parseInt(document.getElementById('ventilators').value) || 0;
             
             try {
-                const response = await fetch('https://aegis-health-routing.onrender.com/route', {
+                const response = await fetch(`${backendUrl}/route`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         hospital_id: currentHospitalId,
+                        hospital_name: document.getElementById('res-hospital').innerText, // NEW
+                        phone_number: document.getElementById('res-phone').innerText, // NEW
                         general_count: reqGen,
                         icu_count: reqIcu,
                         ventilator_count: reqVent
@@ -252,9 +257,9 @@
                 });
                 
                 if (response.ok) {
-                    alert("Ambulance Dispatched! Hospital database updated successfully.");
+                    alert("Ambulance Dispatched! Hospital database updated and SMS Alert queued successfully.");
                 } else {
-                    alert("Database deduction failed. Check backend logs.");
+                    alert("Database deduction/Alert failed. Check backend logs.");
                 }
             } catch (err) {
                 alert("Network error: Could not connect to backend.");

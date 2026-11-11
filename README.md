@@ -5,8 +5,7 @@ AegisLink is a cloud-native, deterministic optimization engine designed to elimi
 Built as an engineering experience during a 24-hour hackathon, this platform bridges complex algorithmic sorting with an accessible, high-speed dispatch dashboard.
 
 ## 🚀 Live Deployment
-* **Frontend (Vercel):** `[INSERT_YOUR_VERCEL_LINK_HERE]`
-* **Backend API (Render):** `[INSERT_YOUR_RENDER_LINK_HERE]`
+* **Frontend (Vercel):** `https://aegis-health-routing.vercel.app/`
 
 ## 🛠️ Tech Stack
 * **Frontend:** HTML, CSS, JavaScript, Leaflet.js (Hosted on Vercel)

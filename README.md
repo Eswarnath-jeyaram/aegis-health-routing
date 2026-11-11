@@ -106,13 +106,3 @@ AegisLink relies on a custom **Multi-Criteria Weighted Optimization** algorithm 
 
 ```
 
-***
-
-### How to use this:
-1. Paste the text above into your `README.md` file[cite: 4].
-2. Replace `YOUR_GITHUB_USERNAME` with your actual username.
-3. Once you deploy on Vercel and Render using the steps we discussed earlier, copy those generated URLs and paste them into the `[INSERT_YOUR_..._LINK_HERE]` slots at the very top. 
-
-This makes your repository look polished, professional, and ready for any technical judge to review!
-
-```

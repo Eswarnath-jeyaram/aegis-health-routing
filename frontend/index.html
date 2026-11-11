@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AegisLink - Health Referral Routing</title>
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <title>AegisLink - Emergency Capacity & Referral Routing</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,15 +18,13 @@
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 
     <style>
-        /* The Magic Dark Mode Geographical Map Trick */
+        /* Original Dark Mode Geographical Map Filter */
         .leaflet-tile {
             filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
         }
-        /* Hide the ugly text instructions from the routing machine */
         .leaflet-routing-container {
             display: none !important;
         }
-        /* Custom scrollbar for sidebar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
@@ -34,67 +33,107 @@
 <body class="bg-gray-950 text-white flex h-screen overflow-hidden font-sans">
 
     <!-- Left Sidebar -->
-    <div class="w-[400px] bg-[#0b1120] p-6 flex flex-col shadow-2xl z-10 overflow-y-auto border-r border-gray-800">
-        <h1 class="text-2xl font-bold mb-8 tracking-wide">AegisLink Dispatch</h1>
-        
-        <div class="space-y-5">
+    <div class="w-[420px] bg-[#0b1120] p-6 flex flex-col shadow-2xl z-10 overflow-y-auto border-r border-gray-800">
+        <div class="flex items-center justify-between mb-6">
             <div>
-                <label class="block text-xs font-bold text-gray-500 mb-2 tracking-wider">PATIENT LATITUDE (CHENNAI)</label>
-                <input type="number" id="patient-lat" value="13.0000" step="0.0001" class="w-full bg-[#111827] border border-gray-800 text-white rounded p-3 focus:outline-none focus:border-red-500 transition-colors">
+                <h1 class="text-2xl font-bold tracking-wide">AegisLink Dispatch</h1>
+                <p class="text-xs text-gray-400">Real-Time Golden Hour Routing Engine</p>
             </div>
-            
-            <div>
-                <label class="block text-xs font-bold text-gray-500 mb-2 tracking-wider">PATIENT LONGITUDE (CHENNAI)</label>
-                <input type="number" id="patient-lon" value="80.2000" step="0.0001" class="w-full bg-[#111827] border border-gray-800 text-white rounded p-3 focus:outline-none focus:border-red-500 transition-colors">
+            <div id="server-badge" class="flex items-center space-x-2 bg-gray-900 border border-gray-700 px-3 py-1.5 rounded-full text-xs">
+                <span id="server-dot" class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></span>
+                <span id="server-text" class="text-gray-300 font-medium">Checking API...</span>
+            </div>
+        </div>
+        
+        <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-1.5 tracking-wider">LATITUDE (CHENNAI)</label>
+                    <input type="number" id="patient-lat" value="13.0000" step="0.0001" class="w-full bg-[#111827] border border-gray-800 text-white rounded p-2.5 text-sm focus:outline-none focus:border-red-500 transition-colors">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-1.5 tracking-wider">LONGITUDE (CHENNAI)</label>
+                    <input type="number" id="patient-lon" value="80.2000" step="0.0001" class="w-full bg-[#111827] border border-gray-800 text-white rounded p-2.5 text-sm focus:outline-none focus:border-red-500 transition-colors">
+                </div>
             </div>
 
-            <div>
-                <label class="block text-xs font-bold text-gray-500 mb-2 tracking-wider">REQUIRED GENERAL BEDS</label>
-                <input type="number" id="general-beds" value="0" min="0" class="w-full bg-[#111827] border border-gray-800 text-white rounded p-3 focus:outline-none focus:border-red-500 transition-colors">
-            </div>
-            
-            <div>
-                <label class="block text-xs font-bold text-gray-500 mb-2 tracking-wider">REQUIRED ICU BEDS</label>
-                <input type="number" id="icu-beds" value="0" min="0" class="w-full bg-[#111827] border border-gray-800 text-white rounded p-3 focus:outline-none focus:border-red-500 transition-colors">
-            </div>
-            
-            <div>
-                <label class="block text-xs font-bold text-gray-500 mb-2 tracking-wider">REQUIRED VENTILATORS</label>
-                <input type="number" id="ventilators" value="0" min="0" class="w-full bg-[#111827] border border-gray-800 text-white rounded p-3 focus:outline-none focus:border-red-500 transition-colors">
+            <div class="grid grid-cols-3 gap-2.5">
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-400 mb-1.5 tracking-wider">GEN BEDS</label>
+                    <input type="number" id="general-beds" value="1" min="0" class="w-full bg-[#111827] border border-gray-800 text-white rounded p-2.5 text-sm focus:outline-none focus:border-red-500 transition-colors">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-400 mb-1.5 tracking-wider">ICU BEDS</label>
+                    <input type="number" id="icu-beds" value="1" min="0" class="w-full bg-[#111827] border border-gray-800 text-white rounded p-2.5 text-sm focus:outline-none focus:border-red-500 transition-colors">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-400 mb-1.5 tracking-wider">VENTILATORS</label>
+                    <input type="number" id="ventilators" value="0" min="0" class="w-full bg-[#111827] border border-gray-800 text-white rounded p-2.5 text-sm focus:outline-none focus:border-red-500 transition-colors">
+                </div>
             </div>
             
             <!-- Dynamic Resources Container -->
             <div>
-                <label class="block text-xs font-bold text-gray-500 mb-2 tracking-wider">REQUIRED CLINICAL RESOURCES</label>
+                <label class="block text-xs font-bold text-gray-400 mb-1.5 tracking-wider">REQUIRED CLINICAL SPECIALISTS / RESOURCES</label>
                 <div id="resources-container" class="space-y-2">
-                    <input type="text" placeholder="e.g. Trauma Surgeon" class="w-full bg-[#111827] border border-gray-800 text-gray-300 rounded p-3 focus:outline-none focus:border-red-500 transition-colors">
+                    <input type="text" placeholder="e.g. Trauma Surgeon, CT Scan" class="w-full bg-[#111827] border border-gray-800 text-gray-300 rounded p-2.5 text-sm focus:outline-none focus:border-red-500 transition-colors">
                 </div>
             </div>
         </div>
 
-        <button id="find-route-btn" class="mt-8 w-full bg-[#dc2626] hover:bg-[#b91c1c] text-white font-bold py-3.5 px-4 rounded-lg shadow-lg shadow-red-900/50 transition-all active:scale-95">
+        <button id="find-route-btn" class="mt-6 w-full bg-[#dc2626] hover:bg-[#b91c1c] text-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-red-900/50 transition-all active:scale-95 text-sm tracking-wide">
             FIND OPTIMAL ROUTE
         </button>
         
-        <div id="status-message" class="mt-4 text-sm text-center hidden"></div>
+        <div id="status-message" class="mt-3 text-xs text-center hidden p-2.5 rounded border"></div>
 
         <!-- Custom Match Panel -->
-        <div id="results-panel" class="hidden mt-6 bg-[#0f292e] rounded-lg p-5 border border-[#1e4b4a]">
-            <h2 class="text-white text-lg font-bold mb-3">Match Found!</h2>
-            <p class="text-[#34d399] text-sm mb-1">Hospital: <span id="res-hospital"></span></p>
-            <p class="text-[#34d399] text-sm mb-1">Contact: <span id="res-phone"></span></p> <!-- NEW PHONE UI -->
-            <p class="text-[#34d399] text-sm mb-1">Available General Beds: <span id="res-general"></span></p>
-            <p class="text-[#34d399] text-sm mb-4">Available ICU Beds: <span id="res-icu"></span></p>
+        <div id="results-panel" class="hidden mt-5 bg-[#0f292e] rounded-lg p-4 border border-[#1e4b4a]">
+            <div class="flex justify-between items-start mb-2">
+                <h2 class="text-white text-base font-bold">Optimal Match Found</h2>
+                <span class="bg-emerald-900/60 text-emerald-300 text-[11px] px-2 py-0.5 rounded border border-emerald-700">Capacity Verified</span>
+            </div>
             
-            <button id="dispatch-btn" class="w-full bg-[#34d399] hover:bg-[#10b981] text-gray-900 font-bold py-3 rounded text-sm mb-5 transition-colors active:scale-95">
-                CONFIRM & DISPATCH
+            <p class="text-[#34d399] text-sm font-semibold mb-1" id="res-hospital"></p>
+            <p class="text-gray-300 text-xs mb-3">Emergency Contact: <span id="res-phone" class="text-white font-mono"></span></p>
+            
+            <div class="grid grid-cols-3 gap-2 bg-[#09191c] p-2.5 rounded border border-[#163837] mb-4 text-center">
+                <div>
+                    <p class="text-[10px] text-gray-400">GEN BEDS</p>
+                    <p class="text-sm font-bold text-[#34d399]" id="res-general">0</p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-gray-400">ICU BEDS</p>
+                    <p class="text-sm font-bold text-[#34d399]" id="res-icu">0</p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-gray-400">VENTS</p>
+                    <p class="text-sm font-bold text-[#34d399]" id="res-vent">0</p>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-2 mb-4 text-xs">
+                <div class="bg-[#09191c] p-2 rounded">
+                    <span class="text-gray-400 block">Est. Road Distance</span>
+                    <span class="text-white font-bold text-sm" id="res-dist">Calculating...</span>
+                </div>
+                <div class="bg-[#09191c] p-2 rounded">
+                    <span class="text-gray-400 block">Est. Transit ETA</span>
+                    <span class="text-white font-bold text-sm" id="res-time">Calculating...</span>
+                </div>
+            </div>
+
+            <button id="dispatch-btn" class="w-full bg-[#34d399] hover:bg-[#10b981] text-gray-900 font-bold py-2.5 rounded text-sm transition-colors active:scale-95">
+                CONFIRM & LOCK CAPACITY
             </button>
-            
-            <p class="text-white text-sm font-bold mb-1">Est. Distance:</p>
-            <p class="text-[#34d399] text-sm mb-3" id="res-dist">Calculating...</p>
-            
-            <p class="text-white text-sm font-bold mb-1">Est. Drive Time:</p>
-            <p class="text-[#34d399] text-sm" id="res-time">Calculating...</p>
+        </div>
+
+        <!-- Live Dispatch Log for Hackathon Demo -->
+        <div class="mt-6 border-t border-gray-800 pt-4">
+            <h3 class="text-xs font-bold text-gray-400 tracking-wider mb-2">LIVE DISPATCH & TELEMETRY LOG</h3>
+            <div id="dispatch-log" class="space-y-2 text-xs text-gray-400 max-h-40 overflow-y-auto">
+                <p class="italic text-gray-600">No dispatches recorded in this session.</p>
+            </div>
         </div>
     </div>
 
@@ -102,31 +141,26 @@
     <div id="map" class="flex-1 h-full z-0"></div>
 
     <script>
-        // Dynamic Resource Inputs Logic
-        const container = document.getElementById('resources-container');
-        container.addEventListener('input', (e) => {
-            const inputs = container.querySelectorAll('input');
-            const lastInput = inputs[inputs.length - 1];
-            
-            if (e.target === lastInput && lastInput.value.trim() !== '') {
-                const newInput = document.createElement('input');
-                newInput.type = 'text';
-                newInput.placeholder = 'Add another...';
-                newInput.className = 'w-full bg-[#111827] border border-gray-800 text-gray-300 rounded p-3 focus:outline-none focus:border-red-500 transition-colors';
-                container.appendChild(newInput);
-            }
-        });
+        const backendUrl = 'https://aegis-health-routing.onrender.com';
 
-        // Initialize Map
+        // 1. Initialize Map with OpenStreetMap DE Mirror (Identical OSM style, no 403 block on file:// or Vercel)
         const map = L.map('map').setView([13.0827, 80.2707], 12);
         
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        const osmLayer = L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
+        // Automatic fallback if any tile ever fails to load
+        osmLayer.on('tileerror', function(e) {
+            if (!e.tile.dataset.fallback) {
+                e.tile.dataset.fallback = 'true';
+                e.tile.src = e.tile.src.replace('tile.openstreetmap.de', 'a.tile.openstreetmap.fr/osmfr');
+            }
+        });
+
         let patientMarker = L.marker([13.0000, 80.2000], { draggable: true }).addTo(map)
-            .bindPopup("Ambulance Location").openPopup();
+            .bindPopup("<b>Ambulance Location</b><br>Drag pin to update").openPopup();
 
         patientMarker.on('dragend', function () {
             const latLng = patientMarker.getLatLng();
@@ -134,17 +168,64 @@
             document.getElementById('patient-lon').value = latLng.lng.toFixed(4);
         });
 
+        // 2. Wake & Check Render FastAPI Backend via /docs endpoint
+        async function checkBackendHealth() {
+            const dot = document.getElementById('server-dot');
+            const text = document.getElementById('server-text');
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 12000);
+                await fetch(`${backendUrl}/docs`, { mode: 'no-cors', signal: controller.signal });
+                clearTimeout(timeoutId);
+                dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400";
+                text.innerText = "API Online";
+            } catch (e) {
+                dot.className = "w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping";
+                text.innerText = "Cold Start (Click Route)";
+            }
+        }
+        checkBackendHealth();
+
+        // 3. Dynamic Resource Inputs Logic
+        const container = document.getElementById('resources-container');
+        container.addEventListener('input', (e) => {
+            const inputs = container.querySelectorAll('input');
+            const lastInput = inputs[inputs.length - 1];
+            if (e.target === lastInput && lastInput.value.trim() !== '') {
+                const newInput = document.createElement('input');
+                newInput.type = 'text';
+                newInput.placeholder = 'Add another specialist/resource...';
+                newInput.className = 'w-full bg-[#111827] border border-gray-800 text-gray-300 rounded p-2.5 text-sm focus:outline-none focus:border-red-500 transition-colors';
+                container.appendChild(newInput);
+            }
+        });
+
         let routingControl = null;
         let hospitalMarker = null;
-        let currentHospitalId = null;
-        
-        // Define backend URL locally (since you are testing updates locally before Render deployment)
-        const backendUrl = 'https://aegis-health-routing.onrender.com';
-        // Routing Logic
+        let lockedMatchState = null;
+
+        function showStatus(message, isError = true) {
+            const statusDiv = document.getElementById('status-message');
+            statusDiv.innerText = message;
+            statusDiv.className = isError
+                ? "mt-3 text-xs text-center p-2.5 rounded border bg-red-950/50 border-red-800 text-red-300 block"
+                : "mt-3 text-xs text-center p-2.5 rounded border bg-emerald-950/50 border-emerald-800 text-emerald-300 block";
+        }
+
+        function appendLog(entryHtml) {
+            const log = document.getElementById('dispatch-log');
+            if (log.querySelector('.italic')) log.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = "bg-[#111827] border border-gray-800 p-2 rounded text-[11px]";
+            div.innerHTML = entryHtml;
+            log.prepend(div);
+        }
+
+        // 4. Find Optimal Route Logic
         document.getElementById('find-route-btn').addEventListener('click', async () => {
             const btn = document.getElementById('find-route-btn');
-            const statusDiv = document.getElementById('status-message');
             const resultsPanel = document.getElementById('results-panel');
+            const dispatchBtn = document.getElementById('dispatch-btn');
             
             const patientLat = parseFloat(document.getElementById('patient-lat').value) || 13.0000;
             const patientLon = parseFloat(document.getElementById('patient-lon').value) || 80.2000;
@@ -152,20 +233,20 @@
             const reqIcu = parseInt(document.getElementById('icu-beds').value) || 0;
             const reqVent = parseInt(document.getElementById('ventilators').value) || 0;
             
-            btn.innerText = "ANALYZING...";
+            const resourceInputs = Array.from(container.querySelectorAll('input'))
+                .map(i => i.value.trim())
+                .filter(v => v !== '');
+
+            patientMarker.setLatLng([patientLat, patientLon]);
+
+            btn.innerText = "QUERYING ATLAS CLUSTER...";
+            btn.disabled = true;
             btn.classList.add('opacity-75', 'cursor-not-allowed');
-            statusDiv.className = "mt-4 text-sm text-center hidden";
+            document.getElementById('status-message').classList.add('hidden');
             resultsPanel.classList.add('hidden');
 
-            // CLEAR OLD ROUTES AND MARKERS COMPLETELY
-            if (routingControl) {
-                map.removeControl(routingControl);
-                routingControl = null;
-            }
-            if (hospitalMarker) {
-                map.removeLayer(hospitalMarker);
-                hospitalMarker = null;
-            }
+            if (routingControl) { map.removeControl(routingControl); routingControl = null; }
+            if (hospitalMarker) { map.removeLayer(hospitalMarker); hospitalMarker = null; }
 
             try {
                 const response = await fetch(`${backendUrl}/optimize`, {
@@ -176,92 +257,123 @@
                         patient_lon: patientLon,
                         required_general: reqGen,
                         required_icu: reqIcu,
-                        required_vent: reqVent
+                        required_vent: reqVent,
+                        required_resources: resourceInputs
                     })
                 });
 
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.detail || "No suitable hospital found.");
+                    throw new Error(data.detail || "No hospital found matching these capacity constraints.");
                 }
+
+                document.getElementById('server-dot').className = "w-2.5 h-2.5 rounded-full bg-emerald-400";
+                document.getElementById('server-text').innerText = "API Online";
 
                 const hospital = data.optimal_hospital;
                 const hLat = parseFloat(hospital.lat || hospital.latitude);
                 const hLon = parseFloat(hospital.lon || hospital.longitude);
-                currentHospitalId = hospital.id || hospital.hospital_id;
+                const availGen = hospital.capacity?.general_beds ?? hospital.general_beds ?? 0;
+                const availIcu = hospital.capacity?.icu_beds ?? hospital.icu_beds ?? 0;
+                const availVent = hospital.capacity?.ventilators ?? hospital.ventilators ?? 0;
+
+                lockedMatchState = {
+                    hospital_id: hospital.id || hospital.hospital_id,
+                    hospital_name: hospital.name,
+                    phone_number: hospital.contact_number || "N/A",
+                    general_count: reqGen,
+                    icu_count: reqIcu,
+                    ventilator_count: reqVent,
+                    availGen,
+                    availIcu,
+                    availVent
+                };
 
                 document.getElementById('res-hospital').innerText = hospital.name;
-                document.getElementById('res-phone').innerText = hospital.contact_number || "N/A"; // NEW PHONE LOGIC
-                document.getElementById('res-general').innerText = (hospital.capacity?.general_beds || hospital.general_beds || 0);
-                document.getElementById('res-icu').innerText = (hospital.capacity?.icu_beds || hospital.icu_beds || 0);
+                document.getElementById('res-phone').innerText = lockedMatchState.phone_number;
+                document.getElementById('res-general').innerText = availGen;
+                document.getElementById('res-icu').innerText = availIcu;
+                document.getElementById('res-vent').innerText = availVent;
+
+                dispatchBtn.disabled = false;
+                dispatchBtn.innerText = "CONFIRM & LOCK CAPACITY";
+                dispatchBtn.className = "w-full bg-[#34d399] hover:bg-[#10b981] text-gray-900 font-bold py-2.5 rounded text-sm transition-colors active:scale-95";
+
                 resultsPanel.classList.remove('hidden');
 
-                // Draw SINGLE Hospital Marker
-                hospitalMarker = L.marker([hLat, hLon]).addTo(map).bindPopup("<b>" + hospital.name + "</b>").openPopup();
+                hospitalMarker = L.marker([hLat, hLon]).addTo(map)
+                    .bindPopup(`<b>${hospital.name}</b><br>ICU: ${availIcu} | Gen: ${availGen} | Vent: ${availVent}`).openPopup();
 
-                // Draw Routing Line
                 routingControl = L.Routing.control({
-                    waypoints: [
-                        L.latLng(patientLat, patientLon),
-                        L.latLng(hLat, hLon)
-                    ],
+                    waypoints: [L.latLng(patientLat, patientLon), L.latLng(hLat, hLon)],
                     routeWhileDragging: false,
-                    show: false, 
-                    addWaypoints: false, 
-                    createMarker: function() { return null; }, 
-                    lineOptions: {
-                        styles: [{color: '#3b82f6', opacity: 0.8, weight: 6}]
-                    }
+                    show: false,
+                    addWaypoints: false,
+                    createMarker: function() { return null; },
+                    lineOptions: { styles: [{color: '#3b82f6', opacity: 0.85, weight: 6}] }
                 }).addTo(map);
 
                 routingControl.on('routesfound', function(e) {
-                    const routes = e.routes;
-                    const summary = routes[0].summary;
+                    const summary = e.routes[0].summary;
                     document.getElementById('res-dist').innerText = (summary.totalDistance / 1000).toFixed(1) + " km";
                     document.getElementById('res-time').innerText = Math.round(summary.totalTime / 60) + " mins";
                 });
 
             } catch (error) {
                 let msg = error.message;
-                if (msg.includes('Failed to fetch')) {
-                    msg = "Network Error: Ensure your local FastAPI server is running.";
+                if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+                    msg = "Render Cloud API is waking up from sleep. Wait 20 seconds and click again.";
                 }
-                statusDiv.innerText = msg;
-                statusDiv.className = "mt-4 text-sm text-center text-red-400 block";
+                showStatus(msg, true);
             } finally {
                 btn.innerText = "FIND OPTIMAL ROUTE";
+                btn.disabled = false;
                 btn.classList.remove('opacity-75', 'cursor-not-allowed');
             }
         });
 
-        // Dispatch Logic - UPDATED TO SEND PHONE NUMBER
+        // 5. Confirm & Dispatch Logic (Idempotent + State-Locked)
         document.getElementById('dispatch-btn').addEventListener('click', async () => {
-            const reqGen = parseInt(document.getElementById('general-beds').value) || 0;
-            const reqIcu = parseInt(document.getElementById('icu-beds').value) || 0;
-            const reqVent = parseInt(document.getElementById('ventilators').value) || 0;
-            
+            if (!lockedMatchState) return;
+            const dispatchBtn = document.getElementById('dispatch-btn');
+            dispatchBtn.disabled = true;
+            dispatchBtn.innerText = "LOCKING INVENTORY...";
+            dispatchBtn.className = "w-full bg-gray-600 text-gray-300 font-bold py-2.5 rounded text-sm cursor-not-allowed";
+
             try {
                 const response = await fetch(`${backendUrl}/route`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        hospital_id: currentHospitalId,
-                        hospital_name: document.getElementById('res-hospital').innerText, // NEW
-                        phone_number: document.getElementById('res-phone').innerText, // NEW
-                        general_count: reqGen,
-                        icu_count: reqIcu,
-                        ventilator_count: reqVent
+                        hospital_id: lockedMatchState.hospital_id,
+                        hospital_name: lockedMatchState.hospital_name,
+                        phone_number: lockedMatchState.phone_number,
+                        general_count: lockedMatchState.general_count,
+                        icu_count: lockedMatchState.icu_count,
+                        ventilator_count: lockedMatchState.ventilator_count
                     })
                 });
                 
                 if (response.ok) {
-                    alert("Ambulance Dispatched! Hospital database updated and SMS Alert queued successfully.");
+                    document.getElementById('res-general').innerText = Math.max(0, lockedMatchState.availGen - lockedMatchState.general_count);
+                    document.getElementById('res-icu').innerText = Math.max(0, lockedMatchState.availIcu - lockedMatchState.icu_count);
+                    document.getElementById('res-vent').innerText = Math.max(0, lockedMatchState.availVent - lockedMatchState.ventilator_count);
+
+                    dispatchBtn.innerText = "DISPATCH CONFIRMED ✓";
+                    dispatchBtn.className = "w-full bg-emerald-800 text-emerald-200 font-bold py-2.5 rounded text-sm cursor-not-allowed";
+
+                    const timeStr = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+                    appendLog(`<span class="text-emerald-400 font-bold">[${timeStr}]</span> Dispatched to <b>${lockedMatchState.hospital_name}</b> (-${lockedMatchState.general_count} Gen, -${lockedMatchState.icu_count} ICU, -${lockedMatchState.ventilator_count} Vent). Alert queued for <span class="font-mono text-gray-300">${lockedMatchState.phone_number}</span>.`);
+                    showStatus("Ambulance dispatched! Live capacity decremented & alert queued.", false);
                 } else {
-                    alert("Database deduction/Alert failed. Check backend logs.");
+                    throw new Error("Backend rejected inventory update.");
                 }
             } catch (err) {
-                alert("Network error: Could not connect to backend.");
+                dispatchBtn.disabled = false;
+                dispatchBtn.innerText = "CONFIRM & LOCK CAPACITY";
+                dispatchBtn.className = "w-full bg-[#34d399] hover:bg-[#10b981] text-gray-900 font-bold py-2.5 rounded text-sm transition-colors";
+                showStatus("Dispatch failed: Check backend connection.", true);
             }
         });
     </script>
